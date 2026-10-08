@@ -1,0 +1,13 @@
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   Location: src/secureflow/api/security.py:30:4
+
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   Location: src/secureflow/core/config.py:15:16
+
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   Location: src/secureflow/main.py:106:44
+
+Total issues: 3 (Low: 1, Medium: 2, High: 0)

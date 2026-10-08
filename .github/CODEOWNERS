@@ -1,0 +1,6 @@
+# SecureFlow Repository Code Owners
+* @varshith
+/src/secureflow/core/ @varshith
+/k8s/ @varshith
+/docker/ @varshith
+/.github/ @varshith

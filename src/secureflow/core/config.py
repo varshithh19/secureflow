@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     DEBUG: bool = False
     DEMO_MODE: bool = True
-    HOST: str = "0.0.0.0"
+    HOST: str = "127.0.0.1"
     PORT: int = 8000
 
     # Cryptography & JWT Secrets (FIX-01: Loaded from environment variables)

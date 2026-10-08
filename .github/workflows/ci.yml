@@ -1,0 +1,102 @@
+name: SecureFlow DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+jobs:
+  lint-and-format:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: pip install ruff
+
+      - name: Run Ruff Linter
+        run: ruff check src/ tests/
+
+  security-static-analysis:
+    name: SAST, Dependency & Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Security Tools
+        run: pip install bandit pip-audit
+
+      - name: Run Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@e85aa68ab54aa508e7b92f7678f28ef3c8d16790 # v2.3.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Bandit SAST
+        run: bandit -r src/ -c pyproject.toml -f txt -o bandit-report.txt || true
+
+      - name: Run Pip-Audit Software Composition Analysis (SCA)
+        run: pip-audit -r requirements.txt || true
+
+  test-and-coverage:
+    name: Unit, Integration & Fuzz Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Pinned Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Pytest Test Suite with Coverage
+        run: python -m pytest tests/ --cov=src/secureflow --cov-fail-under=80
+
+  container-build-and-scan:
+    name: Container Build & Vulnerability Scan
+    needs: [lint-and-format, security-static-analysis, test-and-coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Build Hardened Container Image
+        run: docker build -t secureflow:${{ github.sha }} -f docker/Dockerfile .
+
+      - name: Run Trivy Container Vulnerability Scan
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6fa823473d84e556b18bbaf92 # v0.28.0
+        with:
+          image-ref: secureflow:${{ github.sha }}
+          format: "table"
+          exit-code: "0" # Documented exceptions allowed in lab
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"

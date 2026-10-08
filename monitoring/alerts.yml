@@ -1,0 +1,62 @@
+groups:
+  - name: secureflow_alerts
+    rules:
+      - alert: HighFailedLogins
+        expr: increase(failed_logins_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Excessive failed sign-in attempts detected"
+          description: "Over 5 failed authentication attempts occurred in the last 5 minutes. Potential credential stuffing or brute force attack."
+
+      - alert: HighInvalidSignatures
+        expr: increase(invalid_signatures_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+          category: iot_security
+        annotations:
+          summary: "IoT telemetry signature mismatches detected"
+          description: "Multiple telemetry submissions failed HMAC-SHA256 signature verification. Possible sensor spoofing (THR-01)."
+
+      - alert: ReplayAttackDetected
+        expr: increase(replay_attempts_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Telemetry replay attempt blocked"
+          description: "Replayed nonce or stale timestamp detected on /api/telemetry (THR-03)."
+
+      - alert: RateLimitThresholdExceeded
+        expr: increase(rate_limit_hits_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "High rate of throttled requests"
+          description: "SlowAPI rate limiter triggered more than 10 times in 5 minutes. Possible DoS flood (THR-06)."
+
+      - alert: AuditChainBroken
+        expr: audit_chain_valid == 0
+        for: 0m
+        labels:
+          severity: critical
+          category: compliance
+        annotations:
+          summary: "Tamper-evident audit log hash chain validation failed"
+          description: "A database entry in the audit log was altered or removed after writing (THR-11)."
+
+      - alert: SevereCongestionUnacknowledged
+        expr: active_sensors < 5
+        for: 5m
+        labels:
+          severity: warning
+          category: operations
+        annotations:
+          summary: "Active traffic sensor count below operational threshold"
+          description: "Fewer than 5 sensors reporting active telemetry to the traffic operations gateway."

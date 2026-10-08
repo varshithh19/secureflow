@@ -1,0 +1,64 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Failed Logins (5m)",
+      "type": "stat",
+      "targets": [{ "expr": "increase(failed_logins_total[5m])", "refId": "A" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Invalid HMAC Signatures",
+      "type": "stat",
+      "targets": [{ "expr": "invalid_signatures_total", "refId": "A" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "Replay Attacks Blocked",
+      "type": "stat",
+      "targets": [{ "expr": "replay_attempts_total", "refId": "A" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "Rate Limit Hits",
+      "type": "stat",
+      "targets": [{ "expr": "rate_limit_hits_total", "refId": "A" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 5,
+      "title": "Telemetry Ingestion Latency (p95)",
+      "type": "timeseries",
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(ingest_latency_seconds_bucket[5m])) by (le))", "refId": "A" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 6,
+      "title": "Signal Changes Applied vs Rejected",
+      "type": "timeseries",
+      "targets": [{ "expr": "sum(rate(signal_changes_total[5m])) by (status)", "refId": "A" }]
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["secureflow", "traffic", "security"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "SecureFlow - Traffic Operations & Security Dashboard"
+}

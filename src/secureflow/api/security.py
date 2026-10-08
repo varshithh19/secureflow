@@ -27,8 +27,8 @@ async def get_metrics(
     applied_signals = 0
     try:
         applied_signals = int(SIGNAL_CHANGES_TOTAL.labels(status="applied")._value.get())
-    except Exception:
-        pass
+    except (KeyError, AttributeError, ValueError):
+        applied_signals = 0
 
     return {
         "invalid_signatures": int(INVALID_SIGNATURES_TOTAL._value.get()),

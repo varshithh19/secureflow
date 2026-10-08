@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secureflow-config
+  namespace: secureflow
+data:
+  APP_ENV: "production"
+  DEBUG: "false"
+  DEMO_MODE: "true"
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  RATE_LIMIT_DEFAULT: "100/minute"
+  RATE_LIMIT_TELEMETRY: "120/minute"
+  RATE_LIMIT_AUTH: "10/minute"
+  CONTROLLER_API_URL: "http://secureflow-controller:8010/api/controller/apply"

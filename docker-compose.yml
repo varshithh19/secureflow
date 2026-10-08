@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: secureflow-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DEMO_MODE=true
+      - DATABASE_URL=postgresql://secureflow_user:secureflow_password@postgres:5432/secureflow_db
+      - SECRET_KEY=replace_with_a_secure_random_64_character_hex_key_for_production
+      - JWT_SECRET_KEY=replace_with_a_secure_jwt_signing_key_for_production
+      - CONTROLLER_SIGNING_KEY=replace_with_a_secure_controller_hmac_key_for_production
+      - CONTROLLER_API_URL=http://controller:8010/api/controller/apply
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - secureflow-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: secureflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secureflow_user
+      POSTGRES_PASSWORD: secureflow_password
+      POSTGRES_DB: secureflow_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secureflow_user -d secureflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - secureflow-net
+
+  controller:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: secureflow-controller
+    command: ["python", "simulator/controller_sim.py"]
+    ports:
+      - "8010:8010"
+    networks:
+      - secureflow-net
+    profiles:
+      - simulators
+
+  sensor-simulator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: secureflow-sensors
+    command: ["python", "simulator/sensor_sim.py", "--url", "http://app:8000/api/telemetry", "--interval", "2.0"]
+    depends_on:
+      - app
+    networks:
+      - secureflow-net
+    profiles:
+      - simulators
+
+volumes:
+  pgdata:
+
+networks:
+  secureflow-net:
+    driver: bridge
