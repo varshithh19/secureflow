@@ -15,6 +15,7 @@ ops_router = APIRouter(tags=["ops"])
 
 
 @telemetry_router.post("")
+@telemetry_router.post("/")
 @limiter.limit("120/minute")
 async def ingest_telemetry(
     request: Request,
