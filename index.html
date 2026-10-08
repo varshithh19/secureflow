@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SecureFlow - Traffic Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--sign:#0E3A5B;--sign2:#175078;--road:#0B6BCB;--bg:#E8ECF0;--card:#fff;--line:#CBD3DB;--ink:#17212B;--mute:#566574;--low:#13915B;--mod:#E8A400;--high:#E8590C;--sev:#C92A2A;--ev:#0B6BCB;--r:6px}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 Barlow,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3,.num{font-family:'Barlow Condensed',Barlow,sans-serif;letter-spacing:.2px}
+h2{font-size:21px;margin:0}h3{font-size:18px;margin:0 0 8px}
+a{color:var(--road)}
+:focus-visible{outline:3px solid #0B6BCB;outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+/* shell */
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+.side{background:var(--sign);color:#DCE8F2;display:flex;flex-direction:column;padding:16px 0;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:10px;align-items:center;padding:0 18px 18px;font:600 26px 'Barlow Condensed',Barlow,'Arial Narrow',sans-serif;color:#fff}
+.mark{width:22px;background:#fff;border-radius:6px;padding:3px;display:grid;gap:3px}.mark i{display:block;height:5px;border-radius:50%}
+.mark i:nth-child(1){background:var(--sev)}.mark i:nth-child(2){background:var(--mod)}.mark i:nth-child(3){background:var(--low)}
+.nav{display:grid}
+.nav a{display:flex;gap:12px;align-items:center;padding:10px 18px;color:#C9DAE8;text-decoration:none;border-left:4px solid transparent}
+.nav a:hover{background:var(--sign2)}
+.nav a[aria-current=page]{background:var(--sign2);color:#fff;border-left-color:var(--mod)}
+.nav svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side-f{margin-top:auto;padding:14px 18px 0;font-size:13px;color:#A9C0D2;border-top:1px solid #1d4d73}
+.side-f select{margin-top:6px;background:#0a2c47;color:#fff;border-color:#2c6188}
+.top{display:flex;align-items:center;gap:16px;padding:10px 24px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.top h1{margin:0;font-size:30px;flex:1;min-width:180px}
+.live,.who{display:inline-flex;gap:8px;align-items:center;color:var(--mute);font-size:14px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--low)}
+.content{padding:20px 24px 48px;display:grid;gap:16px;align-content:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:16px}
+.cols.sig{grid-template-columns:260px minmax(0,1fr)}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.stack{display:grid;gap:16px;align-content:start}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{display:block;padding:12px 14px;background:#fff;border:1px solid var(--line);border-left:5px solid var(--road);border-radius:var(--r);text-decoration:none;color:inherit}
+.kpi .num{display:block;font-size:36px;font-weight:700;line-height:1.05}.kpi span:last-child{color:var(--mute);font-size:14px}
+.kpi.sev{border-left-color:var(--sev)}.kpi.mod{border-left-color:var(--mod)}.kpi.low{border-left-color:var(--low)}
+/* controls */
+.btn{font:inherit;font-weight:600;padding:8px 14px;border-radius:var(--r);border:1px solid #8E9DAB;background:#fff;cursor:pointer;text-decoration:none;color:var(--ink);display:inline-flex;gap:6px;align-items:center}
+.btn:hover{background:#F1F4F7}.btn.primary{background:var(--road);border-color:var(--road);color:#fff}.btn.primary:hover{background:#0958A8}
+.btn.danger{background:var(--sev);border-color:var(--sev);color:#fff}.btn.ghost{border-color:transparent;color:var(--road);background:transparent}
+.btn.sm{padding:3px 10px;font-size:14px}.btn[disabled]{opacity:.5;cursor:not-allowed}
+.field{display:grid;gap:4px;margin-bottom:12px}label{font-weight:500}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid #8E9DAB;border-radius:var(--r);background:#fff;width:100%;color:var(--ink)}
+textarea{min-height:76px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.err{color:#A32020;font-size:14px;margin:4px 0}.hint{color:var(--mute);font-size:14px;margin:4px 0}.ok{color:#0B5E3A;font-weight:600}
+.chip{display:inline-block;padding:2px 8px;border-radius:4px;font-size:13px;font-weight:600;background:#E3E8ED;color:var(--ink);white-space:nowrap}
+.chip.low,.chip.ok{background:#D7F0E4;color:#0B5E3A}.chip.mod{background:#FFEFC2;color:#7A5600}.chip.high{background:#FFE0CF;color:#9A3A07}.chip.sev{background:#F8D4D4;color:#8F1D1D}.chip.info{background:#D9E8F8;color:#0A4C93}
+.tw{overflow-x:auto}.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-weight:600;color:var(--mute);font-size:14px;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+.tbl td{padding:10px;border-bottom:1px solid #E3E8ED;vertical-align:top}.tbl tr.warn td{background:#FFF6E0}
+.meter{height:8px;background:#E3E8ED;border-radius:4px;overflow:hidden}.meter span{display:block;height:100%}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:12px 0}.facts dt{color:var(--mute);font-size:13px}.facts dd{margin:0;font-weight:600}
+.empty{color:var(--mute);padding:14px;border:1px dashed var(--line);border-radius:var(--r);margin:0}
+.list{display:grid;gap:8px}.item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #E3E8ED}.item:last-child{border:0}.item .grow{flex:1;min-width:0}
+.jlist{display:grid;gap:4px}.jrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font:inherit;text-align:left;padding:9px 10px;border:1px solid transparent;border-radius:var(--r);background:#F3F5F7;cursor:pointer}
+.jrow.on{border-color:var(--road);background:#E6F0FB}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{font:inherit;padding:4px 12px;border:1px solid #8E9DAB;border-radius:999px;background:#fff;cursor:pointer}.seg button.on{background:var(--sign);color:#fff;border-color:var(--sign)}
+.chart{position:relative;height:260px}
+.tile{padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:#F7F9FA}.tile .num{font-size:28px;font-weight:700;display:block}.tile span:last-child{color:var(--mute);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.ctl{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:var(--r)}.ctl b{display:block}
+.banner{padding:10px 14px;border-radius:var(--r);margin-bottom:12px;font-weight:500}.banner.good{background:#D7F0E4;color:#0B5E3A}.banner.bad{background:#F8D4D4;color:#8F1D1D}
+.secret{font:600 16px ui-monospace,Consolas,monospace;padding:10px;background:#F1F4F7;border:1px solid var(--line);border-radius:var(--r);word-break:break-all}
+/* map */
+#map svg{width:100%;height:auto;display:block;background:#F3F5F7;border-radius:var(--r)}
+.road{stroke:#C3CCD5;stroke-width:18;stroke-linecap:round}.lane{stroke:#fff;stroke-width:2;stroke-dasharray:8 8}
+.corr{stroke:var(--ev);stroke-width:7;stroke-linecap:round;stroke-dasharray:2 14;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.jn{cursor:pointer}.jn .ring{fill:none;stroke:transparent;stroke-width:4}.jn.sel .ring{stroke:var(--ink)}.jn:focus-visible .ring{stroke:var(--road)}
+.n-low{fill:var(--low)}.n-mod{fill:var(--mod)}.n-high{fill:var(--high)}.n-sev{fill:var(--sev)}
+.jl{font:600 13px Barlow,sans-serif;fill:var(--ink);paint-order:stroke;stroke:#F3F5F7;stroke-width:4px;text-anchor:middle}
+.jv{font:700 17px 'Barlow Condensed',sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:central}.jv.dk{fill:#17212B}
+.legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mute)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px}
+/* login */
+.login{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+.login-art{background:var(--sign);color:#fff;padding:64px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.login-art h1{font-size:56px;margin:0}.login-art p{max-width:34ch;font-size:18px;color:#C9DAE8;margin:0}
+.lights{width:64px;background:#08243a;border-radius:14px;padding:10px;display:grid;gap:10px}
+.lights i{width:44px;height:44px;border-radius:50%;background:#1b3a50;display:block}
+.lights i:nth-child(1){animation:lr 9s infinite}.lights i:nth-child(2){animation:la 9s infinite}.lights i:nth-child(3){animation:lg 9s infinite}
+@keyframes lr{0%,42%{background:var(--sev)}43%,100%{background:#1b3a50}}
+@keyframes la{0%,42%{background:#1b3a50}85%,100%{background:#1b3a50}86%,95%{background:var(--mod)}}
+@keyframes lg{0%,44%{background:#1b3a50}45%,84%{background:var(--low)}85%,100%{background:#1b3a50}}
+.login-form{display:grid;place-items:center;padding:32px}.login-form form{width:min(380px,100%)}
+.login-form h2{font-size:32px;margin-bottom:6px}
+details{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}summary{cursor:pointer;font-weight:600}
+.demo{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:14px}
+/* overlays */
+dialog{border:1px solid var(--line);border-radius:var(--r);padding:20px;width:min(580px,94vw);max-height:90vh;color:var(--ink)}
+dialog::backdrop{background:rgba(14,58,91,.5)}
+#toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:50;max-width:min(380px,92vw)}
+.toast{background:var(--ink);color:#fff;padding:10px 14px;border-radius:var(--r);border-left:6px solid var(--low)}.toast.bad{border-left-color:var(--sev)}.toast.info{border-left-color:var(--road)}
+@media(max-width:1000px){.cols,.cols2,.cols.sig{grid-template-columns:1fr}}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:static;height:auto}.nav{display:flex;overflow-x:auto}.nav a{border-left:0;border-bottom:4px solid transparent;white-space:nowrap}.nav a[aria-current=page]{border-bottom-color:var(--mod)}.side-f{display:none}.login{grid-template-columns:1fr}.login-art{padding:32px}.grid2{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div><div id="toasts" aria-live="polite"></div><dialog id="modal"></dialog>
+<script>
+'use strict';
+/* =====================================================================
+   SecureFlow frontend (mock build)
+   Sections: 1 helpers | 2 mock data | 3 mock API | 4 RBAC | 5 simulation
+             6 views | 7 events | 8 boot
+   BACKEND HOOKS: every function in section 3 (API) is the only place that
+   touches data. Replace each with fetch('/api/...') calls and swap the
+   simulation (section 5) for a Server-Sent Events stream at /api/events.
+   ===================================================================== */
+
+/* ---------- 1. helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const cap=s=>{s=String(s).replace(/_/g,' ').toLowerCase();return s.charAt(0).toUpperCase()+s.slice(1)};
+const T=ts=>new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const DT=ts=>new Date(ts).toLocaleString([],{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const ago=ts=>{const m=Math.round((Date.now()-ts)/60000);return m<1?'just now':m<60?m+' min ago':Math.round(m/60)+' h ago'};
+const set=(sel,html)=>{const e=$(sel);if(e)e.innerHTML=html};
+const delay=(v,ms=140)=>new Promise(r=>setTimeout(()=>r(v),ms));
+const h=(str)=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<str.length;i++){c=str.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(16).padStart(14,'0')}; // demo hash; backend uses SHA-256
+const rng=seed=>()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const LV=['Low','Moderate','High','Severe'],LVC=['low','mod','high','sev'];
+const lvl=o=>o<.35?0:o<.6?1:o<.8?2:3;
+const SEQ=['NS','Y1','R1','EW','Y2','R2'];
+const PH={NS:'North-south green',Y1:'North-south amber',R1:'All red',EW:'East-west green',Y2:'East-west amber',R2:'All red'};
+const ROLES={operator:'Operator',supervisor:'Supervisor',admin:'Administrator',analyst:'Analyst',auditor:'Auditor',emergency_dispatcher:'Emergency dispatcher'};
+const SAFE={ns:[10,120],ew:[10,120],yellow:[3,5],allred:[1,5],cycle:240};
+const PLAN_LBL={ns:'North-south green',ew:'East-west green',yellow:'Amber',allred:'All-red'};
+const DEMO_PW='Demo@1234',DEMO_MFA='123456',SESSION_SECONDS=900;
+const ICON={dashboard:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+signals:'<rect x="8" y="2" width="8" height="20" rx="3"/><circle cx="12" cy="7" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/>',
+emergency:'<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>',incidents:'<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
+alerts:'<path d="M6 16v-5a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/>',analytics:'<path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/>',
+sensors:'<circle cx="12" cy="12" r="2"/><path d="M7 7a7 7 0 000 10M17 7a7 7 0 010 10"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 5a3 3 0 010 6M22 21c0-3-2-5-4-5.5"/>',
+audit:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',security:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'};
+const icon=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+
+/* ---------- 2. mock data ---------- */
+const min=60000,now=Date.now.bind(Date);
+const DB={seq:{CR:3,INC:3,A:4,EC:1,SN:112},attackLog:[],tampered:null,
+counters:{invalid_signatures:4,replay_attempts:1,rate_limit_hits:2,failed_logins:3,suspicious_telemetry:2,signal_changes:3,emergency_requests:5}};
+const nid=p=>{DB.seq[p]=(DB.seq[p]||0)+1;return p+'-'+String(DB.seq[p]).padStart(3,'0')};
+const U=(id,name,role,mfa)=>({id,name,role,mfa,locked:false,fails:0,last:now()-Math.random()*864e5});
+DB.users=[U('priya','Priya Nair','operator',false),U('rahul','Rahul Menon','operator',false),U('meera','Meera Iyer','supervisor',true),U('arjun','Arjun Rao','supervisor',true),U('sana','Sana Khan','admin',true),U('dev','Dev Patel','analyst',false),U('kavya','Kavya Reddy','auditor',false),U('ems','Control EMS','emergency_dispatcher',false)];
+const J0=[['J-01','Central Plaza',100,80,.45],['J-02','Harbour Road',300,80,.38],['J-03','Tech Park Gate',500,80,.7],['J-04','Old Market',100,210,.55],['J-05','Station Square',300,210,.84],['J-06','University Gate',500,210,.5],['J-07','Riverside',100,340,.25],['J-08','Airport Link',300,340,.4],['J-09','Hospital Cross',500,340,.6]];
+DB.junctions=J0.map(([id,name,x,y,b],i)=>({id,name,x,y,base:b,occ:b,speed:30,count:20,level:lvl(b),plan:{ns:45,ew:40,yellow:3,allred:2},mode:i%3?'Adaptive':'Fixed time',pi:i%6,rem:5+i*3,corridor:null}));
+const EDGES=[['J-01','J-02'],['J-02','J-03'],['J-04','J-05'],['J-05','J-06'],['J-07','J-08'],['J-08','J-09'],['J-01','J-04'],['J-04','J-07'],['J-02','J-05'],['J-05','J-08'],['J-03','J-06'],['J-06','J-09']];
+const SS=[['SN-101','camera','J-01'],['SN-102','loop','J-02'],['SN-103','radar','J-03'],['SN-104','camera','J-04'],['SN-105','camera','J-05'],['SN-106','loop','J-05'],['SN-107','radar','J-06'],['SN-108','loop','J-07'],['SN-109','camera','J-07'],['SN-110','radar','J-08'],['SN-111','camera','J-09'],['SN-112','loop','J-09']];
+DB.sensors=SS.map(([id,type,jid],i)=>({id,type,jid,status:id==='SN-112'?'PENDING':id==='SN-109'?'REVOKED':'ACTIVE',lastSeen:id==='SN-107'?now()-8*min:now(),quality:88+i%11,loc:'Approach '+'NESW'[i%4]}));
+const FROM={ns:45,ew:40,yellow:3,allred:2};
+DB.requests=[{id:'CR-001',jid:'J-02',from:FROM,plan:{ns:50,ew:35,yellow:3,allred:2},reason:'Reduce queue on the harbour approach during morning peak',by:'rahul',ts:now()-5*36e5,state:'APPLIED',approver:'meera'},
+{id:'CR-002',jid:'J-05',from:FROM,plan:{ns:70,ew:40,yellow:3,allred:2},reason:'Station Square is saturated on the north-south axis',by:'priya',ts:now()-12*min,state:'PROPOSED'},
+{id:'CR-003',jid:'J-03',from:FROM,plan:{ns:20,ew:110,yellow:3,allred:2},reason:'Try a longer east-west green for tech park exit traffic',by:'priya',ts:now()-26*36e5,state:'REJECTED',approver:'arjun',note:'East-west green is too long for the pedestrian crossing.'}];
+DB.corridors=[{id:'EC-001',vehicle:'EV-AMB-12',from:'J-07',to:'J-09',route:['J-07','J-08','J-09'],by:'ems',ts:now()-3*36e5,expires:now()-3*36e5+120000,state:'EXPIRED',reason:'Patient transport'}];
+DB.incidents=[{id:'INC-001',title:'Stalled bus at Station Square',jid:'J-05',sev:'HIGH',status:'INVESTIGATING',assignee:'priya',desc:'Bus blocking the northbound lane. Tow requested.',ts:now()-40*min,notes:[{by:'priya',ts:now()-30*min,text:'Tow truck is 10 minutes away.'}]},
+{id:'INC-002',title:'Controller timeout at Airport Link',jid:'J-08',sev:'MEDIUM',status:'OPEN',assignee:'',desc:'Signal controller missed two heartbeats.',ts:now()-2*36e5,notes:[]},
+{id:'INC-003',title:'Sensor SN-107 not reporting',jid:'J-06',sev:'LOW',status:'OPEN',assignee:'',desc:'No readings for 8 minutes.',ts:now()-8*min,notes:[]}];
+DB.alerts=[{id:'A-001',type:'SENSOR_OFFLINE',sev:'WARNING',jid:'J-06',msg:'Sensor SN-107 has not reported for 8 minutes.',ts:now()-8*min,ack:null},
+{id:'A-002',type:'SEVERE_CONGESTION',sev:'CRITICAL',jid:'J-05',msg:'Station Square occupancy is above 80%.',ts:now()-14*min,ack:null},
+{id:'A-003',type:'FAILED_LOGINS',sev:'WARNING',jid:null,msg:'Three failed sign-ins for user rahul.',ts:now()-50*min,ack:null},
+{id:'A-004',type:'COMMAND_FAILED',sev:'WARNING',jid:'J-08',msg:'Airport Link controller rejected an unsigned command.',ts:now()-2*36e5,ack:'meera'}];
+DB.audit=[];
+function audit(action,actor,target,result='OK',detail='',ts=now()){const prev=DB.audit.length?DB.audit[DB.audit.length-1].hash:'0'.repeat(14);
+ const e={seq:DB.audit.length+1,ts,actor,action,target,result,detail,prev};e.hash=auditHash(e);DB.audit.push(e);return e}
+const auditHash=e=>h([e.prev,e.seq,e.ts,e.actor,e.action,e.target,e.result,e.detail].join('|'));
+[['LOGIN_SUCCESS','meera','auth','OK','MFA passed',6],['SIGNAL_CHANGE_PROPOSED','rahul','CR-001','OK','J-02',5.1],['SIGNAL_CHANGE_APPROVED','meera','CR-001','OK','two-person rule satisfied',5.05],['SIGNAL_CHANGE_APPLIED','controller','CR-001','OK','signed command verified',5],['INVALID_SIGNATURE','SN-105','telemetry','DENIED','HMAC mismatch',3],['LOGIN_FAILED','rahul','auth','DENIED','bad password',1],['EMERGENCY_REQUESTED','ems','EC-001','OK','EV-AMB-12 J-07 to J-09',3],['SIGNAL_CHANGE_REJECTED','arjun','CR-003','OK','pedestrian crossing',26]]
+ .forEach(([a,u,t,r,d,hrs])=>audit(a,u,t,r,d,now()-hrs*36e5));
+DB.audit.sort((a,b)=>a.ts-b.ts);let pv='0'.repeat(14);DB.audit.forEach((e,i)=>{e.seq=i+1;e.prev=pv;e.hash=auditHash(e);pv=e.hash});
+
+/* ---------- 4. RBAC (server must enforce the same table) ---------- */
+const PERMS={'dashboard.view':['operator','supervisor','admin','analyst','auditor','emergency_dispatcher'],'signal.view':['operator','supervisor','admin'],'signal.propose':['operator','supervisor'],'signal.approve':['supervisor'],
+'emergency.view':['operator','supervisor','admin','emergency_dispatcher'],'emergency.create':['emergency_dispatcher'],'emergency.cancel':['emergency_dispatcher','supervisor'],
+'incident.view':['operator','supervisor','admin'],'incident.write':['operator','supervisor'],'alert.view':['operator','supervisor','admin'],'analytics.view':['operator','supervisor','admin','analyst'],
+'sensor.view':['operator','supervisor','admin'],'sensor.manage':['admin'],'user.manage':['admin'],'audit.view':['admin','auditor'],'security.view':['supervisor','admin','auditor'],'security.simulate':['supervisor','admin']};
+const S={user:null,pending:null,route:'dashboard',sel:'J-05',sessionLeft:SESSION_SECONDS,incFilter:{status:'all',q:''},alertSev:'all',reqScope:'all',an:{jid:'all',range:'24h'},auditFilter:'all',lastTick:now()};
+const can=a=>!!S.user&&(PERMS[a]||[]).includes(S.user.role);
+const guard=a=>{if(!can(a)){audit('ACCESS_DENIED',S.user?S.user.id:'anonymous',a,'DENIED');throw new Error('Your role does not allow this action. The attempt was recorded.')}};
+const J=id=>DB.junctions.find(j=>j.id===id),nameOf=id=>J(id)?J(id).name:'City-wide',uname=id=>(DB.users.find(u=>u.id===id)||{name:id}).name;
+const cycle=p=>p.ns+p.ew+2*(p.yellow+p.allred);
+function validatePlan(p){const e=[];for(const k of['ns','ew','yellow','allred']){const[a,b]=SAFE[k];if(!Number.isInteger(p[k])||p[k]<a||p[k]>b)e.push(`${PLAN_LBL[k]} must be a whole number from ${a} to ${b} seconds.`)}
+ if(!e.length&&cycle(p)>SAFE.cycle)e.push(`Cycle length ${cycle(p)} s is above the ${SAFE.cycle} s limit.`);return e}
+function findRoute(a,b){const adj={};EDGES.forEach(([x,y])=>{(adj[x]=adj[x]||[]).push(y);(adj[y]=adj[y]||[]).push(x)});const q=[[a]],seen=new Set([a]);while(q.length){const p=q.shift(),l=p[p.length-1];if(l===b)return p;for(const n of adj[l]||[])if(!seen.has(n)){seen.add(n);q.push([...p,n])}}return null}
+const health=s=>s.status!=='ACTIVE'?s.status:(now()-s.lastSeen>90000?'OFFLINE':'ACTIVE');
+
+/* ---------- 3. mock API (replace with fetch) ---------- */
+const API={
+ async login(u,p){await delay();const x=DB.users.find(a=>a.id===String(u).trim().toLowerCase());
+  if(x&&x.locked){audit('LOGIN_BLOCKED',x.id,'auth','DENIED','account locked');throw new Error('This account is locked after repeated failed sign-ins. Ask an administrator to unlock it.')}
+  if(!x||p!==DEMO_PW){if(x){x.fails++;if(x.fails>=5){x.locked=true;audit('ACCOUNT_LOCKED',x.id,'auth','DENIED','5 failed attempts')}}DB.counters.failed_logins++;audit('LOGIN_FAILED',x?x.id:'unknown','auth','DENIED');throw new Error('Invalid username or password.')}
+  x.fails=0;return x},
+ async mfa(x,code){await delay();if(code!==DEMO_MFA){DB.counters.failed_logins++;audit('MFA_FAILED',x.id,'auth','DENIED');throw new Error('That code is not valid. Check your authenticator app and try again.')}return true},
+ async proposeChange({jid,plan,reason}){await delay();guard('signal.propose');const e=validatePlan(plan);if(e.length)throw new Error(e[0]);if(String(reason).trim().length<10)throw new Error('Give a reason of at least 10 characters.');
+  const r={id:nid('CR'),jid,from:{...J(jid).plan},plan,reason:reason.trim().slice(0,200),by:S.user.id,ts:now(),state:'PROPOSED'};DB.requests.unshift(r);audit('SIGNAL_CHANGE_PROPOSED',S.user.id,r.id,'OK',jid);return r},
+ async decide(id,decision,note=''){await delay();guard('signal.approve');const r=DB.requests.find(x=>x.id===id);if(!r||r.state!=='PROPOSED')throw new Error('This request is no longer waiting for a decision.');
+  if(r.by===S.user.id){audit('SELF_APPROVAL_BLOCKED',S.user.id,id,'DENIED');throw new Error('You proposed this change, so a different supervisor must decide it.')}
+  r.approver=S.user.id;if(decision==='reject'){r.state='REJECTED';r.note=note;audit('SIGNAL_CHANGE_REJECTED',S.user.id,id,'OK',note);return r}
+  r.state='APPROVED';audit('SIGNAL_CHANGE_APPROVED',S.user.id,id,'OK','two-person rule satisfied');setTimeout(()=>applyChange(r),1500);return r},
+ async createEmergency({vehicle,from,to,duration,reason}){await delay();guard('emergency.create');const rt=findRoute(from,to);if(!rt||from===to)throw new Error('Choose two different junctions that are connected by road.');
+  if(!(duration>=60&&duration<=300))throw new Error('Duration must be 60 to 300 seconds.');
+  if(DB.corridors.filter(c=>c.vehicle===vehicle&&now()-c.ts<10*min).length>=3){DB.counters.rate_limit_hits++;audit('RATE_LIMITED',S.user.id,vehicle,'DENIED','3 requests per 10 min');throw new Error('Too many priority requests for this vehicle. Wait a few minutes or call a supervisor.')}
+  if(rt.some(id=>J(id).corridor))throw new Error('Part of this route already has an active emergency corridor.');
+  const c={id:nid('EC'),vehicle,from,to,route:rt,by:S.user.id,ts:now(),expires:now()+duration*1000,state:'ACTIVE',reason};DB.corridors.unshift(c);rt.forEach(id=>{J(id).corridor=c.id});DB.counters.emergency_requests++;
+  audit('EMERGENCY_REQUESTED',S.user.id,c.id,'OK',`${vehicle} ${from} to ${to}`);raiseAlert('EMERGENCY_PRIORITY','INFO',from,`${vehicle} has a green corridor from ${nameOf(from)} to ${nameOf(to)}.`);return c},
+ async cancelEmergency(id){await delay();guard('emergency.cancel');endCorridor(DB.corridors.find(c=>c.id===id),'CANCELLED');audit('EMERGENCY_CANCELLED',S.user.id,id)},
+ async createIncident(d){await delay();guard('incident.write');if(String(d.title).trim().length<5)throw new Error('Give the incident a title of at least 5 characters.');
+  const i={id:nid('INC'),title:d.title.trim().slice(0,100),jid:d.jid,sev:d.sev,status:'OPEN',assignee:S.user.id,desc:String(d.desc||'').slice(0,500),ts:now(),notes:[]};DB.incidents.unshift(i);
+  if(d.alertId){const a=DB.alerts.find(x=>x.id===d.alertId);if(a)a.ack=a.ack||S.user.id}audit('INCIDENT_CREATED',S.user.id,i.id,'OK',i.sev);return i},
+ async setIncident(id,status){await delay();guard('incident.write');const i=DB.incidents.find(x=>x.id===id);if(status==='CLOSED'&&S.user.role!=='supervisor')throw new Error('Only a supervisor can close an incident.');i.status=status;audit('INCIDENT_'+status,S.user.id,id);return i},
+ async addNote(id,text){await delay();guard('incident.write');const i=DB.incidents.find(x=>x.id===id);if(!String(text).trim())throw new Error('Write a note before saving.');i.notes.push({by:S.user.id,ts:now(),text:text.trim().slice(0,300)});audit('INCIDENT_NOTE',S.user.id,id)},
+ async ackAlert(id){await delay(null,80);guard('alert.view');const a=DB.alerts.find(x=>x.id===id);a.ack=S.user.id;audit('ALERT_ACK',S.user.id,id)},
+ async registerSensor({type,jid,loc}){await delay();guard('sensor.manage');if(!['camera','loop','radar'].includes(type)||!J(jid))throw new Error('Choose a sensor type and junction from the lists.');
+  const s={id:'SN-'+(++DB.seq.SN),type,jid,status:'PENDING',lastSeen:now(),quality:0,loc:String(loc||'').slice(0,40)||'Approach N'};const secret=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  s.secretHash=h(secret);DB.sensors.push(s);audit('SENSOR_REGISTERED',S.user.id,s.id,'OK',type+' '+jid);return{sensor:s,secret}},
+ async setSensor(id,status){await delay();guard('sensor.manage');const s=DB.sensors.find(x=>x.id===id);s.status=status;if(status==='ACTIVE'){s.lastSeen=now();s.quality=92}audit(status==='ACTIVE'?'SENSOR_ACTIVATED':'SENSOR_REVOKED',S.user.id,id)},
+ async setRole(id,role){await delay();guard('user.manage');if(id===S.user.id)throw new Error('You cannot change your own role.');if(!ROLES[role])throw new Error('Unknown role.');const u=DB.users.find(x=>x.id===id);const old=u.role;u.role=role;audit('ROLE_CHANGED',S.user.id,id,'OK',`${old} to ${role}`)},
+ async setLock(id,locked){await delay();guard('user.manage');const u=DB.users.find(x=>x.id===id);u.locked=locked;u.fails=0;audit(locked?'ACCOUNT_LOCKED':'ACCOUNT_UNLOCKED',S.user.id,id)},
+ async resetMfa(id){await delay();guard('user.manage');audit('MFA_RESET',S.user.id,id)},
+ verifyAudit(){let pv='0'.repeat(14);for(const e of DB.audit){if(e.prev!==pv||auditHash(e)!==e.hash)return{ok:false,seq:e.seq};pv=e.hash}return{ok:true,n:DB.audit.length}},
+ tamper(){const e=DB.audit[Math.max(0,DB.audit.length-4)];DB.tampered={seq:e.seq,orig:e.detail};e.detail='edited by attacker';audit('AUDIT_TAMPER_DEMO',S.user.id,'#'+e.seq,'WARN','demo only')},
+ repair(){if(DB.tampered){DB.audit[DB.tampered.seq-1].detail=DB.tampered.orig;DB.tampered=null}},
+ runAttack(id){guard('security.simulate');const a=ATTACKS.find(x=>x.id===id);if(a.counter)DB.counters[a.counter]++;audit(a.audit,'attacker-sim',a.id,'BLOCKED',a.control);
+  if(a.alert)raiseAlert(a.alert,'WARNING',a.jid||null,a.alertMsg);DB.attackLog.unshift({id:a.id,name:a.name,ts:now(),result:a.result,control:a.control});return a},
+ analytics(f){const js=f.jid==='all'?DB.junctions:[J(f.jid)];const rf={'24h':1,'7d':.96,'30d':.93}[f.range];if(!js[0]||!rf)throw new Error('Choose a junction and range from the lists.');
+  const g=(x,m,s)=>Math.exp(-((x-m)**2)/(2*s*s)),cv=x=>.2+.42*g(x,8.5,1.7)+.5*g(x,18,2.1),at=(j,x)=>clamp(cv(x)*(j.base/.5)*.62*rf,0,1);
+  const hours=[...Array(24)].map((_,x)=>mean(js.map(j=>at(j,x)))),hn=new Date().getHours(),rd=rng(11+js.length);
+  const today=hours.map((v,x)=>x<=hn?Math.round(clamp(v+(rd()-.5)*.14,0,1)*100):null);
+  const perJ=DB.junctions.map(j=>{const arr=[...Array(24)].map((_,x)=>at(j,x));const avg=mean(arr);return{id:j.id,name:j.name,avg,speed:Math.round(52*(1-avg)+6),peak:arr.indexOf(Math.max(...arr)),inc:DB.incidents.filter(i=>i.jid===j.id).length}});
+  const sel=perJ.filter(p=>js.some(j=>j.id===p.id));return{hours,today,perJ,sel,peak:hours.indexOf(Math.max(...hours)),speed:Math.round(mean(sel.map(p=>p.speed))),vehicles:Math.round(mean(hours)*js.length*1450)}}
+};
+const ATTACKS=[
+{id:'THR-01',name:'Spoofed sensor',desc:'A device that was never registered sends readings.',control:'Device authentication (SR-01)',audit:'SENSOR_AUTH_FAILED',counter:'invalid_signatures',result:'Rejected with 401. The device ID is not in the registry.',alert:'SUSPICIOUS_TELEMETRY',alertMsg:'Readings from an unregistered device were rejected.'},
+{id:'THR-02',name:'False traffic data',desc:'A real sensor reports 480 km/h and zero vehicles at a jammed junction.',control:'Plausibility checks (SR-08)',audit:'SUSPICIOUS_TELEMETRY',counter:'suspicious_telemetry',result:'Reading flagged and excluded from the congestion calculation.',alert:'SUSPICIOUS_TELEMETRY',alertMsg:'Implausible reading flagged from SN-105.',jid:'J-05'},
+{id:'THR-03',name:'Replay of an old reading',desc:'A captured, correctly signed message is sent again.',control:'Timestamp window and nonce (SR-02)',audit:'REPLAY_DETECTED',counter:'replay_attempts',result:'Rejected. The nonce was already used.'},
+{id:'THR-04',name:'Signal change without approval',desc:'An operator calls the apply endpoint directly.',control:'Two-person approval (SR-04)',audit:'UNAPPROVED_CHANGE_BLOCKED',result:'Rejected with 403. Only approved requests reach the controller.'},
+{id:'THR-05',name:'Privilege escalation',desc:'An operator edits their own role in the request.',control:'Server-side RBAC (SR-03)',audit:'PRIVILEGE_ESCALATION_BLOCKED',result:'Rejected with 403. Roles are read from the database, never from the request.',alert:'PRIVILEGE_ESCALATION',alertMsg:'A role change attempt by a non-admin was blocked.'},
+{id:'THR-06',name:'Telemetry flood',desc:'2,000 requests in 10 seconds from one address.',control:'Rate limiting (SR-06)',audit:'RATE_LIMITED',counter:'rate_limit_hits',result:'Requests above the limit receive 429. Other sensors are unaffected.'},
+{id:'THR-10',name:'Forged emergency request',desc:'An unsigned priority request for a full route.',control:'Authenticated vehicle token (SR-07)',audit:'FORGED_EMERGENCY_BLOCKED',result:'Rejected with 401. No corridor was created.',alert:'FORGED_EMERGENCY',alertMsg:'A forged emergency priority request was blocked.'},
+{id:'THR-12',name:'SQL injection in a filter',desc:"The analytics junction filter is set to ' OR 1=1 --",control:'Validation and parameterized queries (SR-09)',audit:'INJECTION_BLOCKED',result:'Rejected with 422. Filters accept only listed values.'}];
+function raiseAlert(type,sev,jid,msg){if(DB.alerts.some(a=>a.type===type&&a.jid===jid&&!a.ack&&now()-a.ts<5*min))return;DB.alerts.unshift({id:nid('A'),type,sev,jid,msg,ts:now(),ack:null})}
+function applyChange(r){const j=J(r.jid);j.plan={...r.plan};j.pi=0;j.rem=j.plan.ns;r.state='APPLIED';DB.counters.signal_changes++;audit('SIGNAL_CHANGE_APPLIED','controller',r.id,'OK','signed command verified');toast(`${j.name}: new plan applied (controller verified the signature).`,'info');live()}
+function endCorridor(c,state){if(!c||c.state!=='ACTIVE')return;c.state=state;c.route.forEach(id=>{if(J(id).corridor===c.id)J(id).corridor=null})}
+
+/* ---------- 5. simulation (replace with SSE) ---------- */
+function simTick(){DB.junctions.forEach(j=>{j.occ=clamp(j.occ+(j.base-j.occ)*.15+(Math.random()-.5)*.1,.05,.98);if(j.corridor)j.occ=Math.max(.05,j.occ-.04);
+ j.speed=Math.round(8+(1-j.occ)*50+Math.random()*4);j.count=Math.round(j.occ*60+Math.random()*6);const nl=lvl(j.occ);
+ if(nl===3&&j.level!==3)raiseAlert('SEVERE_CONGESTION','CRITICAL',j.id,`${j.name} occupancy is above 80%.`);j.level=nl});
+ DB.sensors.forEach(s=>{if(s.status==='ACTIVE'&&s.id!=='SN-107')s.lastSeen=now()})}
+function phaseTick(){DB.junctions.forEach(j=>{j.rem--;if(j.rem<=0){j.pi=(j.pi+1)%6;const p=SEQ[j.pi];j.rem=p==='NS'?j.plan.ns:p==='EW'?j.plan.ew:p[0]==='Y'?j.plan.yellow:j.plan.allred}});
+ DB.corridors.forEach(c=>{if(c.state==='ACTIVE'&&now()>c.expires){endCorridor(c,'EXPIRED');audit('EMERGENCY_EXPIRED','system',c.id)}})}
+for(let i=0;i<6;i++)simTick();
+
+/* ---------- 6. views ---------- */
+const sigCol=(j,ax)=>{if(j.corridor)return'var(--ev)';const p=SEQ[j.pi];if(p==='NS')return ax==='NS'?'var(--low)':'var(--sev)';if(p==='EW')return ax==='EW'?'var(--low)':'var(--sev)';if(p==='Y1')return ax==='NS'?'var(--mod)':'var(--sev)';if(p==='Y2')return ax==='EW'?'var(--mod)':'var(--sev)';return'var(--sev)'};
+const phaseText=j=>j.corridor?`Emergency priority (${j.corridor})`:`${PH[SEQ[j.pi]]}, ${j.rem} s left`;
+const chip=(c,t)=>`<span class="chip ${c}">${esc(t)}</span>`;
+const sevChip=s=>chip({CRITICAL:'sev',WARNING:'mod',INFO:'info'}[s]||'',cap(s));
+const stChip=s=>chip({ACTIVE:'ok',APPLIED:'ok',APPROVED:'info',PROPOSED:'mod',PENDING:'mod',REJECTED:'sev',REVOKED:'sev',OFFLINE:'sev',EXPIRED:'',CANCELLED:'',OPEN:'mod',INVESTIGATING:'info',RESOLVED:'ok',CLOSED:'',HIGH:'high',CRITICAL:'sev',MEDIUM:'mod',LOW:'low'}[s]||'',cap(s));
+const tbl=(heads,rows,empty)=>rows?`<div class="tw"><table class="tbl"><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="empty">${empty}</p>`;
+const planDiff=r=>{const d=Object.keys(PLAN_LBL).filter(k=>r.plan[k]!==r.from[k]).map(k=>`${PLAN_LBL[k]} ${r.from[k]} to ${r.plan[k]} s`);return d.join('; ')||'No change'};
+
+function mapSVG(){const E=EDGES.map(([a,b])=>[J(a),J(b)]);
+ return`<svg viewBox="0 0 600 420" role="img" aria-label="Map of nine junctions showing congestion level and signal state">
+ ${E.map(([a,b])=>`<line class="road" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`).join('')}${E.map(([a,b])=>`<line class="lane" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`).join('')}
+ ${DB.corridors.filter(c=>c.state==='ACTIVE').map(c=>c.route.slice(1).map((id,i)=>{const a=J(c.route[i]),b=J(id);return`<line class="corr" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`}).join('')).join('')}
+ ${DB.junctions.map(j=>`<g class="jn${S.sel===j.id?' sel':''}" data-act="selJ" data-id="${j.id}" tabindex="0" role="button" aria-label="${esc(j.name)}, ${LV[j.level]} congestion, ${phaseText(j)}">
+  <circle class="ring" cx="${j.x}" cy="${j.y}" r="31"/><circle class="n-${LVC[j.level]}" cx="${j.x}" cy="${j.y}" r="26" stroke="#fff" stroke-width="3"/>
+  <text class="jv${j.level===1?' dk':''}" x="${j.x}" y="${j.y}">${Math.round(j.occ*100)}%</text>
+  <rect x="${j.x+34}" y="${j.y-14}" width="8" height="28" rx="2" fill="${sigCol(j,'NS')}"/><rect x="${j.x-14}" y="${j.y+34}" width="28" height="8" rx="2" fill="${sigCol(j,'EW')}"/>
+  ${j.corridor?`<text class="jl" x="${j.x}" y="${j.y-38}" style="fill:var(--ev)">Emergency</text>`:`<text class="jl" x="${j.x}" y="${j.y-36}">${esc(j.name)}</text>`}</g>`).join('')}</svg>`}
+const legend=()=>`<div class="legend">${LV.map((l,i)=>`<span><i class="sw" style="background:var(--${LVC[i]})"></i>${l}</span>`).join('')}<span>Vertical bar: north-south signal. Horizontal bar: east-west signal.</span><span><i class="sw" style="background:var(--ev)"></i>Emergency corridor</span></div>`;
+function kpis(){const hi=DB.junctions.filter(j=>j.level>=2).length,act=DB.sensors.filter(s=>health(s)==='ACTIVE').length,tot=DB.sensors.filter(s=>s.status!=='REVOKED').length,open=DB.incidents.filter(i=>!['RESOLVED','CLOSED'].includes(i.status)).length,pend=DB.requests.filter(r=>r.state==='PROPOSED').length;
+ const k=(v,l,c,href)=>`<a class="kpi ${c}" href="${href}"><span class="num">${v}</span><span>${l}</span></a>`;
+ return k(`${hi} of 9`,'Junctions with heavy traffic',hi>3?'sev':hi>1?'mod':'low','#/dashboard')+k(Math.round(mean(DB.junctions.map(j=>j.speed)))+' km/h','City average speed','','#/analytics')+k(`${act} of ${tot}`,'Sensors reporting',act<tot?'mod':'low','#/sensors')+k(open,'Open incidents',open?'mod':'low','#/incidents')+k(pend,'Changes awaiting approval',pend?'mod':'low','#/signals')}
+function jPanel(){const j=J(S.sel),ss=DB.sensors.filter(s=>s.jid===j.id&&s.status!=='REVOKED');
+ return`<div class="card-h"><h2>${esc(j.name)}</h2>${chip(LVC[j.level],LV[j.level])}</div><div class="meter" aria-hidden="true"><span style="width:${Math.round(j.occ*100)}%;background:var(--${LVC[j.level]})"></span></div>
+ <dl class="facts"><div><dt>Road occupancy</dt><dd>${Math.round(j.occ*100)}%</dd></div><div><dt>Vehicles per minute</dt><dd>${j.count}</dd></div><div><dt>Average speed</dt><dd>${j.speed} km/h</dd></div><div><dt>Control mode</dt><dd>${j.mode}</dd></div><div style="grid-column:1/-1"><dt>Signal now</dt><dd>${phaseText(j)}</dd></div><div style="grid-column:1/-1"><dt>Sensors</dt><dd>${ss.map(s=>`${s.id} (${health(s).toLowerCase()})`).join(', ')||'None'}</dd></div></dl>
+ <div class="row">${can('signal.view')?'<a class="btn primary" href="#/signals">Manage signal</a>':''}${can('analytics.view')?'<a class="btn" href="#/analytics">View history</a>':''}</div>`}
+function alertList(n,compact){const a=DB.alerts.filter(x=>S.alertSev==='all'||compact||x.sev===S.alertSev).slice(0,n);if(!can('alert.view'))return`<p class="empty">Alerts are visible to operators, supervisors and administrators.</p>`;
+ return a.length?`<div class="list">${a.map(x=>`<div class="item">${sevChip(x.sev)}<div class="grow"><div>${esc(x.msg)}</div><div class="hint">${esc(cap(x.type))} - ${esc(nameOf(x.jid))} - ${ago(x.ts)}${x.ack?` - acknowledged by ${esc(uname(x.ack))}`:''}</div>${compact?'':`<div class="row" style="margin-top:6px">${x.ack?'':`<button class="btn sm" data-act="ack" data-id="${x.id}">Acknowledge</button>`}${can('incident.write')?`<button class="btn sm" data-act="alertInc" data-id="${x.id}">Create incident</button>`:''}</div>`}</div></div>`).join('')}</div>`:'<p class="empty">No alerts. New alerts appear here as soon as they are raised.</p>'}
+const pendingList=()=>{const p=DB.requests.filter(r=>r.state==='PROPOSED');return p.length?`<div class="list">${p.map(r=>`<div class="item"><div class="grow"><b>${esc(nameOf(r.jid))}</b> <span class="hint">${r.id}</span><div>${esc(planDiff(r))}</div><div class="hint">Proposed by ${esc(uname(r.by))}, ${ago(r.ts)}</div></div>${can('signal.view')?'<a class="btn sm" href="#/signals">Review</a>':''}</div>`).join('')}</div>`:'<p class="empty">Nothing is waiting. Proposed signal changes appear here for a supervisor to review.</p>'};
+function corrList(full){const a=DB.corridors.filter(c=>c.state==='ACTIVE');if(!a.length)return`<p class="empty">No emergency corridors are active. Approved requests appear here with a countdown.</p>`;
+ return`<div class="list">${a.map(c=>{const left=Math.max(0,Math.round((c.expires-now())/1000)),tot=Math.round((c.expires-c.ts)/1000);return`<div class="item"><div class="grow"><b>${esc(c.vehicle)}</b> <span class="hint">${c.id} - ${esc(c.reason)}</span><div>${c.route.map(id=>esc(nameOf(id))).join(' to ')}</div><div class="meter" style="margin-top:6px"><span style="width:${clamp(left/tot*100,0,100)}%;background:var(--ev)"></span></div><div class="hint">${left} s left. Corridor ends automatically.</div></div>${full&&can('emergency.cancel')?`<button class="btn sm danger" data-act="cancelEm" data-id="${c.id}">Cancel</button>`:''}</div>`}).join('')}</div>`}
+function sigCurrent(){const j=J(S.sel),p=j.plan;return`<div class="card-h"><h2>${esc(j.name)}</h2><div class="row">${chip('',j.mode)}${chip(LVC[j.level],LV[j.level]+' congestion')}</div></div>
+ <p><b>Signal now:</b> ${phaseText(j)}</p>${tbl(['North-south green','East-west green','Amber','All-red','Cycle'],`<tr><td>${p.ns} s</td><td>${p.ew} s</td><td>${p.yellow} s</td><td>${p.allred} s</td><td>${cycle(p)} s</td></tr>`)}`}
+function proposeCard(){const p=J(S.sel).plan,f=(k,l)=>`<div class="field"><label for="f-${k}">${l} (${SAFE[k][0]} to ${SAFE[k][1]} s)</label><input id="f-${k}" name="${k}" type="number" min="${SAFE[k][0]}" max="${SAFE[k][1]}" step="1" value="${p[k]}" required></div>`;
+ return`<section class="card"><div class="card-h"><h2>Propose a change</h2></div><form data-form="propose" novalidate><input type="hidden" name="jid" value="${S.sel}"><div class="grid2">${f('ns','North-south green')}${f('ew','East-west green')}${f('yellow','Amber')}${f('allred','All-red')}</div>
+ <div class="field"><label for="f-reason">Reason</label><textarea id="f-reason" name="reason" maxlength="200" required placeholder="What problem does this change solve?"></textarea></div>
+ <div id="perr" class="hint">Cycle length: ${cycle(p)} s (limit ${SAFE.cycle} s). A supervisor must approve before the controller receives it.</div><div class="row" style="margin-top:10px"><button class="btn primary" type="submit" id="psub" disabled>Send for approval</button></div></form></section>`}
+function reqTable(){const act=r=>{if(r.state==='APPROVED')return'<span class="hint">Sending signed command...</span>';if(r.state!=='PROPOSED')return r.note?`<span class="hint">${esc(r.note)}</span>`:'';
+ if(!can('signal.approve'))return'<span class="hint">Waiting for a supervisor</span>';if(r.by===S.user.id)return'<span class="hint">Needs a different supervisor</span>';
+ return`<button class="btn sm primary" data-act="approve" data-id="${r.id}">Approve</button> <button class="btn sm" data-act="rejectOpen" data-id="${r.id}">Reject</button>`};
+ const rows=DB.requests.filter(r=>S.reqScope==='all'||r.jid===S.sel).map(r=>`<tr><td>${r.id}</td><td>${esc(nameOf(r.jid))}</td><td>${esc(planDiff(r))}<div class="hint">${esc(r.reason)}</div></td><td>${esc(uname(r.by))}<div class="hint">${ago(r.ts)}</div></td><td>${stChip(r.state)}</td><td>${act(r)}</td></tr>`).join('');
+ return tbl(['Request','Junction','Change','Proposed by','Status','Action'],rows,'No change requests yet.')}
+const vehicles=[['EV-AMB-12','Ambulance 12'],['EV-FIRE-03','Fire engine 3'],['EV-POL-07','Police unit 7']];
+const jopts=(sel)=>DB.junctions.map(j=>`<option value="${j.id}"${j.id===sel?' selected':''}>${esc(j.name)}</option>`).join('');
+function incTable(){const f=S.incFilter,q=f.q.toLowerCase();const rows=DB.incidents.filter(i=>(f.status==='all'||i.status===f.status)&&(!q||(i.title+i.id+nameOf(i.jid)).toLowerCase().includes(q))).map(i=>`<tr><td>${i.id}</td><td><b>${esc(i.title)}</b><div class="hint">${esc(nameOf(i.jid))} - ${ago(i.ts)}</div></td><td>${stChip(i.sev)}</td><td>${stChip(i.status)}</td><td>${esc(i.assignee?uname(i.assignee):'Unassigned')}</td><td><button class="btn sm" data-act="openInc" data-id="${i.id}">Open</button></td></tr>`).join('');
+ return tbl(['ID','Incident','Severity','Status','Assigned to',''],rows,'No incidents match. Clear the filters or create a new incident.')}
+const incForm=(pre={})=>`<form data-form="newInc"><input type="hidden" name="alertId" value="${esc(pre.alertId||'')}"><div class="field"><label for="i-t">Title</label><input id="i-t" name="title" required minlength="5" maxlength="100" value="${esc(pre.title||'')}"></div>
+ <div class="grid2"><div class="field"><label for="i-j">Junction</label><select id="i-j" name="jid">${jopts(pre.jid||S.sel)}</select></div><div class="field"><label for="i-s">Severity</label><select id="i-s" name="sev"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></select></div></div>
+ <div class="field"><label for="i-d">What happened</label><textarea id="i-d" name="desc" maxlength="500">${esc(pre.desc||'')}</textarea></div><p class="err" id="merr"></p><div class="row"><button class="btn primary" type="submit">Create incident</button><button class="btn" type="button" data-act="close">Cancel</button></div></form>`;
+function incModal(id){const i=DB.incidents.find(x=>x.id===id),next={OPEN:['INVESTIGATING'],INVESTIGATING:['RESOLVED'],RESOLVED:['CLOSED','INVESTIGATING'],CLOSED:[]}[i.status];
+ modal(`<h2>${i.id}: ${esc(i.title)}</h2><p class="row">${stChip(i.sev)} ${stChip(i.status)} <span class="hint">${esc(nameOf(i.jid))}, assigned to ${esc(i.assignee?uname(i.assignee):'nobody')}</span></p><p>${esc(i.desc)||'No description.'}</p>
+ ${can('incident.write')&&next.length?`<div class="row">${next.map(n=>`<button class="btn sm" data-act="incStatus" data-id="${i.id}" data-to="${n}"${n==='CLOSED'&&S.user.role!=='supervisor'?' disabled title="Only a supervisor can close an incident"':''}>Move to ${cap(n)}</button>`).join('')}</div>`:''}
+ <h3 style="margin-top:14px">Notes</h3>${i.notes.length?`<div class="list">${i.notes.map(n=>`<div class="item"><div class="grow"><b>${esc(uname(n.by))}</b> <span class="hint">${ago(n.ts)}</span><div>${esc(n.text)}</div></div></div>`).join('')}</div>`:'<p class="empty">No notes yet.</p>'}
+ ${can('incident.write')?`<form data-form="note" style="margin-top:10px"><input type="hidden" name="id" value="${i.id}"><div class="field"><label for="n-t">Add a note</label><textarea id="n-t" name="text" maxlength="300"></textarea></div><p class="err" id="merr"></p><div class="row"><button class="btn primary" type="submit">Save note</button><button class="btn" type="button" data-act="close">Close</button></div></form>`:'<div class="row" style="margin-top:10px"><button class="btn" data-act="close">Close</button></div>'}`)}
+function sensorTable(){const rows=DB.sensors.map(s=>{const st=health(s);return`<tr${st==='OFFLINE'?' class="warn"':''}><td><b>${s.id}</b></td><td>${cap(s.type)}</td><td>${esc(nameOf(s.jid))}<div class="hint">${esc(s.loc)}</div></td><td>${stChip(st)}</td><td>${s.status==='ACTIVE'?s.quality+'%':'-'}</td><td>${s.status==='PENDING'?'Not yet':ago(s.lastSeen)}</td>
+ ${can('sensor.manage')?`<td>${s.status==='PENDING'?`<button class="btn sm primary" data-act="sensorOn" data-id="${s.id}">Activate</button>`:''} ${s.status!=='REVOKED'?`<button class="btn sm" data-act="sensorOff" data-id="${s.id}">Revoke</button>`:''}</td>`:''}</tr>`}).join('');
+ return tbl(['Sensor','Type','Location','Status','Signal quality','Last reading',...(can('sensor.manage')?['']:[])],rows,'No sensors.')}
+function auditTable(){const rows=DB.audit.filter(e=>S.auditFilter==='all'||e.action.startsWith(S.auditFilter)).slice().reverse().map(e=>`<tr${DB.tampered&&DB.tampered.seq===e.seq?' class="warn"':''}><td>${e.seq}</td><td>${DT(e.ts)}</td><td>${esc(e.actor)}</td><td>${esc(e.action)}</td><td>${esc(e.target)}</td><td>${chip({OK:'ok',DENIED:'sev',BLOCKED:'sev',WARN:'mod'}[e.result]||'',cap(e.result))}</td><td>${esc(e.detail)}</td><td><code title="${e.hash}">${e.hash.slice(0,8)}</code></td></tr>`).join('');return tbl(['#','Time','Actor','Action','Target','Result','Detail','Hash'],rows,'No entries match this filter.')}
+const CONTROLS=[['Device authentication','SR-01','Per-device secret, mTLS in transit'],['Signed telemetry','SR-02','HMAC, 30 s window, nonce store'],['Role-based access','SR-03','Deny by default, checked on the server'],['Two-person approval','SR-04','Proposer cannot approve; safe ranges enforced'],['Tamper-evident audit','SR-05','Hash-chained entries, verify on demand'],['Rate limiting','SR-06','Per sensor and per address'],['Emergency authentication','SR-07','Vehicle token plus auto-expiry'],['Plausibility checks','SR-08','Range, jump and neighbour comparison'],['Input validation','SR-09','Whitelists and parameterized queries']];
+function secView(){return`<section class="card"><div class="card-h"><h2>Security controls</h2></div><div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${CONTROLS.map(c=>`<div class="ctl"><span class="chip ok">On</span><div><b>${c[0]} <span class="hint">${c[1]}</span></b><span class="hint">${c[2]}</span></div></div>`).join('')}</div></section>
+ <section class="card"><div class="card-h"><h2>Security metrics</h2></div><div class="tiles" id="sectiles">${secTiles()}</div></section>
+ <section class="card"><div class="card-h"><h2>Attack simulations</h2><span class="hint">Each run is blocked, counted, logged and, where relevant, raised as an alert.</span></div>${tbl(['Threat','Attack','Control that stops it',''],ATTACKS.map(a=>`<tr><td><b>${a.id}</b></td><td>${a.name}<div class="hint">${esc(a.desc)}</div></td><td>${a.control}</td><td>${can('security.simulate')?`<button class="btn sm" data-act="attack" data-id="${a.id}">Run simulation</button>`:'<span class="hint">View only</span>'}</td></tr>`).join(''))}</section>
+ <section class="card"><div class="card-h"><h2>Simulation results</h2></div><div id="atklog">${atkLog()}</div></section>`}
+const secTiles=()=>Object.entries(DB.counters).map(([k,v])=>`<div class="tile"><span class="num">${v}</span><span>${cap(k)}</span></div>`).join('');
+const atkLog=()=>DB.attackLog.length?`<div class="list">${DB.attackLog.map(a=>`<div class="item"><span class="chip sev">Blocked</span><div class="grow"><b>${a.id} ${a.name}</b><div>${esc(a.result)}</div><div class="hint">${esc(a.control)} - ${T(a.ts)}</div></div></div>`).join('')}</div>`:'<p class="empty">Run a simulation to see how SecureFlow responds.</p>';
+
+const VIEWS={
+ dashboard:{perm:'dashboard.view',title:'Operations overview',nav:'Dashboard',html:()=>`<div class="kpis" id="kpis">${kpis()}</div><div class="cols"><section class="card"><div class="card-h"><h2>Live junction map</h2>${legend()}</div><div id="map">${mapSVG()}</div></section>
+  <aside class="stack"><section class="card" id="jpanel">${jPanel()}</section><section class="card"><div class="card-h"><h2>Latest alerts</h2>${can('alert.view')?'<a href="#/alerts">View all</a>':''}</div><div id="dalerts">${alertList(4,true)}</div></section></aside></div>
+  <div class="cols2"><section class="card"><div class="card-h"><h2>Awaiting approval</h2></div><div id="dpend">${pendingList()}</div></section><section class="card"><div class="card-h"><h2>Active emergency corridors</h2></div><div id="dcorr">${corrList(false)}</div></section></div>`,
+  live(){set('#kpis',kpis());if(!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#map')))set('#map',mapSVG());set('#jpanel',jPanel());set('#dalerts',alertList(4,true));set('#dpend',pendingList());set('#dcorr',corrList(false))}},
+ signals:{perm:'signal.view',title:'Signal control',nav:'Signals',html:()=>`<div class="cols sig"><section class="card"><div class="card-h"><h2>Junctions</h2></div><div class="jlist">${DB.junctions.map(x=>`<button class="jrow${x.id===S.sel?' on':''}" data-act="selJ" data-id="${x.id}"><span>${esc(x.name)}</span>${chip(LVC[x.level],LV[x.level])}</button>`).join('')}</div></section>
+  <div class="stack"><section class="card" id="sigcur">${sigCurrent()}</section>${can('signal.propose')?proposeCard():'<section class="card"><p class="hint">Your role can view signal plans but cannot propose changes.</p></section>'}</div></div>
+  <section class="card"><div class="card-h"><h2>Change requests</h2><div class="seg" role="group" aria-label="Request scope"><button data-act="reqScope" data-v="all" class="${S.reqScope==='all'?'on':''}">All junctions</button><button data-act="reqScope" data-v="sel" class="${S.reqScope==='sel'?'on':''}">This junction</button></div></div><div id="reqs">${reqTable()}</div></section>`,
+  live(){set('#sigcur',sigCurrent());set('#reqs',reqTable())}},
+ emergency:{perm:'emergency.view',title:'Emergency vehicle priority',nav:'Emergency',html:()=>`<div class="cols"><div class="stack"><section class="card"><div class="card-h"><h2>Active corridors</h2></div><div id="ecorr">${corrList(true)}</div></section>
+  <section class="card"><div class="card-h"><h2>History</h2></div>${tbl(['ID','Vehicle','Route','By','Status'],DB.corridors.filter(c=>c.state!=='ACTIVE').map(c=>`<tr><td>${c.id}</td><td>${esc(c.vehicle)}</td><td>${c.route.map(i=>esc(nameOf(i))).join(' to ')}</td><td>${esc(uname(c.by))}<div class="hint">${ago(c.ts)}</div></td><td>${stChip(c.state)}</td></tr>`).join(''),'No finished corridors yet.')}</section></div>
+  <section class="card"><div class="card-h"><h2>Request priority</h2></div>${can('emergency.create')?`<form data-form="emerg"><div class="field"><label for="e-v">Vehicle</label><select id="e-v" name="vehicle">${vehicles.map(v=>`<option value="${v[0]}">${v[1]} (${v[0]})</option>`).join('')}</select></div>
+   <div class="grid2"><div class="field"><label for="e-f">From</label><select id="e-f" name="from">${jopts('J-07')}</select></div><div class="field"><label for="e-t">To</label><select id="e-t" name="to">${jopts('J-09')}</select></div></div>
+   <div class="field"><label for="e-r">Reason</label><select id="e-r" name="reason"><option>Patient transport</option><option>Fire response</option><option>Police response</option></select></div>
+   <div class="field"><label for="e-d">Corridor length: <b id="edv">120</b> s (60 to 300)</label><input id="e-d" name="duration" type="range" min="60" max="300" step="10" value="120"></div>
+   <p class="hint" id="eroute">${findRoute('J-07','J-09').map(i=>esc(nameOf(i))).join(' to ')}</p><p class="err" id="merr"></p><button class="btn primary" type="submit">Request green corridor</button><p class="hint">Requests are tied to your sign-in, limited to 3 per vehicle every 10 minutes, and visible to supervisors.</p></form>`:'<p class="hint">Only emergency dispatchers can request priority. Supervisors can cancel an active corridor.</p>'}</section></div>`,
+  live(){set('#ecorr',corrList(true))}},
+ incidents:{perm:'incident.view',title:'Incidents',nav:'Incidents',html:()=>`<section class="card"><div class="card-h"><div class="row"><select id="if-s" data-filter="status" aria-label="Status filter" style="width:auto"><option value="all">All statuses</option>${['OPEN','INVESTIGATING','RESOLVED','CLOSED'].map(s=>`<option value="${s}"${S.incFilter.status===s?' selected':''}>${cap(s)}</option>`).join('')}</select><input data-filter="q" aria-label="Search incidents" placeholder="Search incidents" value="${esc(S.incFilter.q)}" style="width:220px"></div>${can('incident.write')?'<button class="btn primary" data-act="newInc">New incident</button>':''}</div><div id="inctbl">${incTable()}</div></section>`},
+ alerts:{perm:'alert.view',title:'Alerts',nav:'Alerts',html:()=>`<section class="card"><div class="card-h"><div class="seg" role="group" aria-label="Severity filter">${['all','CRITICAL','WARNING','INFO'].map(s=>`<button data-act="alertSev" data-v="${s}" class="${S.alertSev===s?'on':''}">${s==='all'?'All':cap(s)}</button>`).join('')}</div></div><div id="alist">${alertList(50,false)}</div></section>`,live(){set('#alist',alertList(50,false))}},
+ analytics:{perm:'analytics.view',title:'Historical traffic analysis',nav:'Analytics',html(){return`<section class="card"><div class="row"><div class="field" style="margin:0"><label for="a-j">Junction</label><select id="a-j" data-an="jid"><option value="all">All junctions</option>${DB.junctions.map(j=>`<option value="${j.id}"${S.an.jid===j.id?' selected':''}>${esc(j.name)}</option>`).join('')}</select></div>
+  <div class="field" style="margin:0"><label for="a-r">Range</label><select id="a-r" data-an="range">${[['24h','Last 24 hours'],['7d','Last 7 days'],['30d','Last 30 days']].map(r=>`<option value="${r[0]}"${S.an.range===r[0]?' selected':''}>${r[1]}</option>`).join('')}</select></div><button class="btn" data-act="export" style="align-self:flex-end">Export CSV</button></div></section><div id="anbody"></div>`},
+  after(){drawAnalytics()}},
+ sensors:{perm:'sensor.view',title:'Traffic sensors',nav:'Sensors',html:()=>`<section class="card"><div class="card-h"><h2>${DB.sensors.length} sensors</h2>${can('sensor.manage')?'<button class="btn primary" data-act="regSensor">Register sensor</button>':'<span class="hint">Only administrators can register or revoke sensors.</span>'}</div><div id="sentbl">${sensorTable()}</div></section>`,live(){set('#sentbl',sensorTable())}},
+ users:{perm:'user.manage',title:'Users and roles',nav:'Users',html:()=>`<section class="card">${tbl(['User','Role','Multi-factor','Last sign-in','Status',''],DB.users.map(u=>`<tr><td><b>${esc(u.name)}</b><div class="hint">${u.id}</div></td><td><select data-role-user="${u.id}" aria-label="Role for ${esc(u.name)}" ${u.id===S.user.id?'disabled title="You cannot change your own role"':''}>${Object.entries(ROLES).map(([k,v])=>`<option value="${k}"${u.role===k?' selected':''}>${v}</option>`).join('')}</select></td><td>${u.mfa?chip('ok','Required'):chip('','Not required')}</td><td>${ago(u.last)}</td><td>${u.locked?chip('sev','Locked'):chip('ok','Active')}</td><td><button class="btn sm" data-act="lock" data-id="${u.id}" data-v="${u.locked?0:1}"${u.id===S.user.id?' disabled':''}>${u.locked?'Unlock':'Lock'}</button> ${u.mfa?`<button class="btn sm" data-act="mfaReset" data-id="${u.id}">Reset MFA</button>`:''}</td></tr>`).join(''))}</section><p class="hint">Role changes are recorded in the audit log. You cannot change your own role.</p>`},
+ audit:{perm:'audit.view',title:'Audit log',nav:'Audit log',html:()=>`<section class="card"><div class="card-h"><div class="row"><button class="btn primary" data-act="verify">Verify chain</button>${S.user.role==='admin'?'<button class="btn" data-act="tamper">Demo: tamper with an entry</button><button class="btn ghost" data-act="repair">Undo demo tamper</button>':''}<select data-auditf aria-label="Filter by action" style="width:auto"><option value="all">All actions</option>${['LOGIN','SIGNAL','EMERGENCY','SENSOR','ROLE','INCIDENT','ACCESS'].map(a=>`<option value="${a}"${S.auditFilter===a?' selected':''}>${cap(a)}</option>`).join('')}</select></div></div><div id="vres"></div><div id="audtbl">${auditTable()}</div></section>`},
+ security:{perm:'security.view',title:'Security center',nav:'Security',html:()=>`<div class="stack">${secView()}</div>`}
+};
+const ORDER=['dashboard','signals','emergency','incidents','alerts','analytics','sensors','users','audit','security'];
+const defaultRoute=r=>({auditor:'audit',emergency_dispatcher:'emergency',analyst:'analytics'}[r]||'dashboard');
+
+function loginView(){const p=S.pending;return`<main class="login"><section class="login-art"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><h1>SecureFlow</h1><p>Traffic signal operations for authorized city staff. Every action is signed in and recorded.</p></section>
+ <section class="login-form">${p?`<form data-form="mfa"><h2>Enter your code</h2><p class="hint">${esc(p.name)}, open your authenticator app and type the 6-digit code.</p><div class="field"><label for="m-c">Authenticator code</label><input id="m-c" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required autofocus></div><p class="err" id="lerr" role="alert"></p><div class="row"><button class="btn primary" type="submit">Verify</button><button class="btn" type="button" data-act="cancelMfa">Back</button></div></form>`
+ :`<form data-form="login"><h2>Sign in</h2><div class="field"><label for="l-u">Username</label><input id="l-u" name="u" autocomplete="username" required autofocus></div><div class="field"><label for="l-p">Password</label><input id="l-p" name="p" type="password" autocomplete="current-password" required></div><p class="err" id="lerr" role="alert"></p><button class="btn primary" type="submit">Sign in</button>
+ <details><summary>Demo accounts</summary><p class="hint">Password for all: ${DEMO_PW}. Supervisors and administrators also need the code ${DEMO_MFA}.</p>${DB.users.map(u=>`<div class="demo"><span>${esc(u.name)} <span class="hint">${ROLES[u.role]}</span></span><button type="button" class="btn sm" data-act="fill" data-u="${u.id}">Use</button></div>`).join('')}</details></form>`}</section></main>`}
+function shell(inner,v){const nav=ORDER.filter(k=>can(VIEWS[k].perm)).map(k=>`<a href="#/${k}"${S.route===k?' aria-current="page"':''}>${icon(k==='dashboard'?'dashboard':k==='users'?'users':k)}${VIEWS[k].nav}</a>`).join('');
+ const open=DB.alerts.filter(a=>!a.ack&&a.sev==='CRITICAL').length;
+ return`<div class="app"><aside class="side"><div class="brand"><span class="mark"><i></i><i></i><i></i></span>SecureFlow</div><nav class="nav" aria-label="Main">${nav}</nav><div class="side-f"><label for="demo-u">Demo only: view as</label><select id="demo-u">${DB.users.map(u=>`<option value="${u.id}"${u.id===S.user.id?' selected':''}>${esc(u.name)} (${ROLES[u.role]})</option>`).join('')}</select><p>Mock data. No backend connected.</p></div></aside>
+ <div class="main"><header class="top"><h1>${v?v.title:'No access'}</h1><span class="live"><i class="dot"></i>Live, updated <span id="upd">${T(S.lastTick)}</span></span>${open?`<a class="chip sev" href="#/alerts" style="text-decoration:none">${open} critical alert${open>1?'s':''}</a>`:'<span class="chip ok">No critical alerts</span>'}
+ <span class="who"><span><b>${esc(S.user.name)}</b>, ${ROLES[S.user.role]}${S.user.mfa?' (MFA)':''}</span><span title="Time until automatic sign-out">Session <b id="sess">${fmtSess()}</b></span><button class="btn sm" data-act="logout">Sign out</button></span></header><main class="content" id="view">${inner}</main></div></div>`}
+const fmtSess=()=>Math.floor(S.sessionLeft/60)+':'+String(S.sessionLeft%60).padStart(2,'0');
+let charts=[];
+function render(){closeModal();charts.forEach(c=>c.destroy());charts=[];if(!S.user){$('#app').innerHTML=loginView();return}
+ const v=VIEWS[S.route];if(!v||!can(v.perm)){if(v)audit('ACCESS_DENIED',S.user.id,S.route,'DENIED');
+  $('#app').innerHTML=shell(`<section class="card"><h2>You do not have access to this page</h2><p>Your role (${ROLES[S.user.role]}) cannot open ${esc(S.route)}. The attempt was recorded.</p><a class="btn primary" href="#/${defaultRoute(S.user.role)}">Go to your home page</a></section>`,null);return}
+ $('#app').innerHTML=shell(v.html(),v);v.after&&v.after()}
+function live(){S.lastTick=now();set('#upd',T(S.lastTick));const v=VIEWS[S.route];if(S.user&&v&&can(v.perm)&&v.live&&!$('dialog[open]'))v.live()}
+function drawAnalytics(){let d;try{d=API.analytics(S.an)}catch(e){set('#anbody',`<p class="err">${esc(e.message)}</p>`);return}
+ const sel=d.sel;set('#anbody',`<div class="kpis"><div class="kpi"><span class="num">${String(d.peak).padStart(2,'0')}:00</span><span>Peak congestion hour</span></div><div class="kpi"><span class="num">${d.speed} km/h</span><span>Average speed</span></div><div class="kpi"><span class="num">${d.vehicles.toLocaleString()}</span><span>Vehicles per day (estimate)</span></div><div class="kpi"><span class="num">${DB.incidents.length}</span><span>Incidents on record</span></div></div>
+ <div class="cols2" style="margin-top:16px"><section class="card"><h3>Congestion by hour of day</h3><div class="chart"><canvas id="c1" role="img" aria-label="Congestion index by hour"></canvas></div></section><section class="card"><h3>Most congested junctions</h3><div class="chart"><canvas id="c2" role="img" aria-label="Average congestion by junction"></canvas></div></section></div>
+ <section class="card" style="margin-top:16px"><h3>Junction summary</h3>${tbl(['Junction','Average congestion','Average speed','Peak hour','Incidents'],d.perJ.slice().sort((a,b)=>b.avg-a.avg).map(p=>`<tr><td>${esc(p.name)}</td><td>${Math.round(p.avg*100)}%</td><td>${p.speed} km/h</td><td>${String(p.peak).padStart(2,'0')}:00</td><td>${p.inc}</td></tr>`).join(''))}</section>`);
+ if(!window.Chart){set('#anbody .cols2',`<p class="hint">Charts need Chart.js. Connect to the internet and reload.</p>`);return}
+ Chart.defaults.font.family='Barlow, system-ui, sans-serif';const hrs=[...Array(24)].map((_,i)=>String(i).padStart(2,'0'));
+ charts.push(new Chart($('#c1'),{type:'line',data:{labels:hrs,datasets:[{label:'Typical day',data:d.hours.map(v=>Math.round(v*100)),borderColor:'#0B6BCB',backgroundColor:'rgba(11,107,203,.12)',fill:true,tension:.3,pointRadius:0},{label:'Today',data:d.today,borderColor:'#E8590C',borderDash:[5,4],tension:.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100,title:{display:true,text:'Congestion index (%)'}},x:{title:{display:true,text:'Hour of day'}}}}}));
+ const top=d.perJ.slice().sort((a,b)=>b.avg-a.avg);charts.push(new Chart($('#c2'),{type:'bar',data:{labels:top.map(p=>p.name),datasets:[{label:'Average congestion (%)',data:top.map(p=>Math.round(p.avg*100)),backgroundColor:top.map(p=>p.avg>.6?'#C92A2A':p.avg>.4?'#E8A400':'#13915B')}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:0,max:100}}}}))}
+function exportCsv(){const d=API.analytics(S.an),cell=v=>{let s=String(v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return'"'+s.replace(/"/g,'""')+'"'};
+ const rows=[['Junction','Average congestion %','Average speed km/h','Peak hour','Incidents'],...d.perJ.map(p=>[p.name,Math.round(p.avg*100),p.speed,p.peak+':00',p.inc])];
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'}));a.download='traffic-analysis.csv';a.click();audit('REPORT_EXPORTED',S.user.id,'analytics','OK',S.an.jid+' '+S.an.range);toast('Report exported.')}
+
+/* ---------- 7. events ---------- */
+function toast(msg,type='ok'){const t=document.createElement('div');t.className='toast '+(type==='ok'?'':type);t.textContent=msg;$('#toasts').append(t);setTimeout(()=>t.remove(),4200)}
+function modal(html){const d=$('#modal');d.innerHTML=html;if(d.showModal){if(!d.open)d.showModal()}else d.setAttribute('open','')}
+function closeModal(){const d=$('#modal');if(d.open){d.close?d.close():d.removeAttribute('open')}}
+function confirmBox(title,msg,ok,cb,danger){window._cb=cb;modal(`<h2>${esc(title)}</h2><p>${esc(msg)}</p><div class="row"><button class="btn ${danger?'danger':'primary'}" data-act="confirmOk">${esc(ok)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
+const run=async(fn,okMsg)=>{try{const r=await fn();if(okMsg)toast(okMsg);return r}catch(e){toast(e.message,'bad');return undefined}};
+function finishLogin(u){S.user=u;S.pending=null;S.sessionLeft=SESSION_SECONDS;u.last=now();audit('LOGIN_SUCCESS',u.id,'auth','OK',u.mfa?'MFA passed':'');location.hash='#/'+defaultRoute(u.role);S.route=defaultRoute(u.role);render()}
+const A={
+ selJ:d=>{S.sel=d.id;const v=VIEWS[S.route];if(S.route==='signals')render();else{live();const n=$(`#map [data-id="${d.id}"]`);n&&n.focus()}},
+ fill:d=>{$('#l-u').value=d.u;$('#l-p').value=DEMO_PW},cancelMfa:()=>{S.pending=null;render()},
+ logout:()=>{audit('LOGOUT',S.user.id,'auth');S.user=null;render()},close:closeModal,
+ confirmOk:()=>{const f=window._cb;closeModal();f&&f()},
+ approve:d=>run(async()=>{await API.decide(d.id,'approve');live()},'Approved. Sending a signed command to the controller.'),
+ rejectOpen:d=>modal(`<h2>Reject ${d.id}</h2><form data-form="reject"><input type="hidden" name="id" value="${d.id}"><div class="field"><label for="r-n">Reason (the proposer will see this)</label><textarea id="r-n" name="note" required minlength="5" maxlength="200"></textarea></div><p class="err" id="merr"></p><div class="row"><button class="btn danger" type="submit">Reject change</button><button class="btn" type="button" data-act="close">Cancel</button></div></form>`),
+ reqScope:d=>{S.reqScope=d.v;render()},
+ cancelEm:d=>confirmBox('Cancel corridor?','Signals on this route go back to normal control immediately.','Cancel corridor',()=>run(async()=>{await API.cancelEmergency(d.id);live()},'Corridor cancelled.'),true),
+ newInc:()=>modal(`<h2>New incident</h2>${incForm()}`),openInc:d=>incModal(d.id),
+ incStatus:d=>run(async()=>{await API.setIncident(d.id,d.to);incModal(d.id);set('#inctbl',incTable())},'Incident updated.'),
+ ack:d=>run(async()=>{await API.ackAlert(d.id);live()},'Alert acknowledged.'),
+ alertInc:d=>{const a=DB.alerts.find(x=>x.id===d.id);modal(`<h2>Create incident from alert</h2>${incForm({alertId:a.id,title:cap(a.type)+' at '+nameOf(a.jid),jid:a.jid||S.sel,desc:a.msg})}`)},
+ alertSev:d=>{S.alertSev=d.v;render()},export:()=>run(()=>exportCsv()),
+ regSensor:()=>modal(`<h2>Register a sensor</h2><form data-form="regSensor"><div class="grid2"><div class="field"><label for="s-t">Type</label><select id="s-t" name="type"><option value="camera">Camera</option><option value="loop">Inductive loop</option><option value="radar">Radar</option></select></div><div class="field"><label for="s-j">Junction</label><select id="s-j" name="jid">${jopts(S.sel)}</select></div></div><div class="field"><label for="s-l">Mounting location</label><input id="s-l" name="loc" maxlength="40" placeholder="Approach N"></div><p class="hint">The sensor starts as pending. A secret key is shown once after you register it.</p><p class="err" id="merr"></p><div class="row"><button class="btn primary" type="submit">Register sensor</button><button class="btn" type="button" data-act="close">Cancel</button></div></form>`),
+ sensorOn:d=>run(async()=>{await API.setSensor(d.id,'ACTIVE');live()},'Sensor activated.'),
+ sensorOff:d=>confirmBox('Revoke '+d.id+'?','Its readings are rejected immediately. This cannot be undone; register a new sensor to replace it.','Revoke sensor',()=>run(async()=>{await API.setSensor(d.id,'REVOKED');live()},'Sensor revoked.'),true),
+ lock:d=>run(async()=>{await API.setLock(d.id,d.v==='1');render()},'Account updated.'),mfaReset:d=>run(()=>API.resetMfa(d.id),'MFA reset. The user must enrol again at next sign-in.'),
+ verify:()=>{const r=API.verifyAudit();set('#vres',r.ok?`<div class="banner good">Chain intact. ${r.n} entries verified.</div>`:`<div class="banner bad">Chain broken at entry #${r.seq}. That entry or an earlier one was changed after it was written.</div>`)},
+ tamper:()=>{API.tamper();set('#audtbl',auditTable());toast('An entry was altered. Run Verify chain.','info')},repair:()=>{API.repair();set('#audtbl',auditTable());set('#vres','')},
+ attack:d=>run(async()=>{API.runAttack(d.id);set('#atklog',atkLog());set('#sectiles',secTiles())},'Attack blocked and recorded.'),
+ copy:d=>{navigator.clipboard&&navigator.clipboard.writeText(d.v);toast('Secret copied.')}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;if(el.tagName==='A')e.preventDefault&&0;const f=A[el.dataset.act];f&&f(el.dataset)});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const el=e.target.closest&&e.target.closest('g[data-act]');if(el){e.preventDefault();A[el.dataset.act](el.dataset)}}});
+const fd=f=>Object.fromEntries(new FormData(f));
+const FORMS={
+ async login(f,d){const err=$('#lerr');err.textContent='';try{const u=await API.login(d.u,d.p);if(u.mfa){S.pending=u;render()}else finishLogin(u)}catch(e){err.textContent=e.message}},
+ async mfa(f,d){try{await API.mfa(S.pending,d.code.trim());finishLogin(S.pending)}catch(e){$('#lerr').textContent=e.message}},
+ async propose(f,d){const plan={ns:+d.ns,ew:+d.ew,yellow:+d.yellow,allred:+d.allred};await run(async()=>{await API.proposeChange({jid:d.jid,plan,reason:d.reason});f.reset();live();render()},'Sent for approval. A different supervisor must approve it.')},
+ async reject(f,d){try{await API.decide(d.id,'reject',d.note);closeModal();toast('Change rejected.');live()}catch(e){$('#merr').textContent=e.message}},
+ async emerg(f,d){try{await API.createEmergency({vehicle:d.vehicle,from:d.from,to:d.to,duration:+d.duration,reason:d.reason});toast('Green corridor active. Supervisors were notified.');render()}catch(e){$('#merr').textContent=e.message}},
+ async newInc(f,d){try{await API.createIncident(d);closeModal();toast('Incident created.');if(S.route==='incidents')set('#inctbl',incTable());else live()}catch(e){$('#merr').textContent=e.message}},
+ async note(f,d){try{await API.addNote(d.id,d.text);incModal(d.id);toast('Note saved.')}catch(e){$('#merr').textContent=e.message}},
+ async regSensor(f,d){try{const r=await API.registerSensor(d);set('#sentbl',sensorTable());modal(`<h2>${r.sensor.id} registered</h2><p>Copy this secret key into the device now. For security it is not shown again, and only a hash is stored.</p><p class="secret">${r.secret}</p><div class="row"><button class="btn primary" data-act="copy" data-v="${r.secret}">Copy secret</button><button class="btn" data-act="close">Done</button></div>`)}catch(e){$('#merr').textContent=e.message}}
+};
+document.addEventListener('submit',e=>{const f=e.target.closest('form[data-form]');if(!f)return;e.preventDefault();const fn=FORMS[f.dataset.form];if(fn)fn(f,fd(f))});
+document.addEventListener('input',e=>{const f=e.target.closest('form[data-form="propose"]');if(f){const d=fd(f),plan={ns:+d.ns,ew:+d.ew,yellow:+d.yellow,allred:+d.allred},er=validatePlan(plan),ok=!er.length&&String(d.reason).trim().length>=10;
+  set('#perr',er.length?`<span class="err">${esc(er[0])}</span>`:`Cycle length: ${cycle(plan)} s (limit ${SAFE.cycle} s). A supervisor must approve before the controller receives it.`+(ok?'':' Add a reason of at least 10 characters.'));$('#psub').disabled=!ok}
+ if(e.target.id==='e-d')set('#edv',e.target.value);if(e.target.dataset.filter==='q'){S.incFilter.q=e.target.value;set('#inctbl',incTable())}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='demo-u'){const u=DB.users.find(x=>x.id===t.value);audit('DEMO_SWITCH',u.id,'auth','OK','demo role switch');S.user=u;S.sessionLeft=SESSION_SECONDS;S.route=defaultRoute(u.role);location.hash='#/'+S.route;render()}
+ if(t.id==='e-f'||t.id==='e-t'){const r=findRoute($('#e-f').value,$('#e-t').value);set('#eroute',r&&$('#e-f').value!==$('#e-t').value?r.map(i=>esc(nameOf(i))).join(' to '):'<span class="err">Choose two different junctions.</span>')}
+ if(t.dataset.filter==='status'){S.incFilter.status=t.value;set('#inctbl',incTable())}
+ if(t.dataset.an){S.an[t.dataset.an]=t.value;charts.forEach(c=>c.destroy());charts=[];drawAnalytics()}
+ if(t.dataset.auditf!==undefined){S.auditFilter=t.value;set('#audtbl',auditTable())}
+ if(t.dataset.roleUser){const id=t.dataset.roleUser,role=t.value;confirmBox('Change role?',`${uname(id)} becomes ${ROLES[role]}. This is recorded in the audit log.`,'Change role',()=>run(async()=>{await API.setRole(id,role);render()},'Role updated.'),false);const sel=t;$('#modal').addEventListener('close',()=>{if(DB.users.find(x=>x.id===id).role!==role)render()},{once:true})}});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+/* ---------- 8. boot ---------- */
+function route(){S.route=(location.hash.replace(/^#\/?/,'')||'dashboard');if(S.user)render()}
+window.addEventListener('hashchange',route);
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{S.sessionLeft=SESSION_SECONDS}));
+let n=0;setInterval(()=>{n++;phaseTick();if(n%2===0)simTick();if(S.user){S.sessionLeft--;set('#sess',fmtSess());if(S.sessionLeft<=0){audit('SESSION_EXPIRED',S.user.id,'auth');S.user=null;render();toast('Your session expired. Sign in again.','info')}else live()}},1000);
+S.route=(location.hash.replace(/^#\/?/,'')||'dashboard');render();
+</script>
+</body>
+</html>

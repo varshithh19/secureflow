@@ -1,0 +1,43 @@
+/* Self-hosted Font Definitions (Barlow & Barlow Condensed Fallback Stacks) */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Barlow Regular'), local('Barlow-Regular'), local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), sans-serif;
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Barlow Medium'), local('Barlow-Medium'), local('Segoe UI Semibold'), local('Roboto Medium'), sans-serif;
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Barlow SemiBold'), local('Barlow-SemiBold'), local('Segoe UI Bold'), sans-serif;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Barlow Condensed Medium'), local('BarlowCondensed-Medium'), local('Arial Narrow Bold'), local('Impact'), sans-serif;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Barlow Condensed SemiBold'), local('BarlowCondensed-SemiBold'), local('Arial Narrow Bold'), sans-serif;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Barlow Condensed Bold'), local('BarlowCondensed-Bold'), local('Arial Narrow Bold'), sans-serif;
+}

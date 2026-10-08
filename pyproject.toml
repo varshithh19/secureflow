@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secureflow"
+version = "1.0.0"
+description = "SecureFlow - Smart City Traffic Management System"
+authors = [{ name = "SecureFlow Team" }]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "sqlalchemy>=2.0.28",
+    "argon2-cffi>=23.1.0",
+    "pyjwt>=2.8.0",
+    "pyotp>=2.9.0",
+    "slowapi>=0.1.9",
+    "prometheus-client>=0.20.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra -q --cov=src/secureflow --cov-report=term-missing --cov-report=html:evidence/htmlcov"
+
+[tool.coverage.run]
+source = ["src/secureflow"]
+omit = ["tests/*", "simulator/*", "scripts/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "S"]
+ignore = ["S101"] # Allow assert in tests
+
+[tool.bandit]
+targets = ["src/secureflow"]
+exclude_dirs = ["tests", "simulator", "scripts"]
+skips = ["B101"]
