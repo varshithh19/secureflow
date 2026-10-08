@@ -141,6 +141,22 @@ export const API = {
   },
 
   async getMe() {
+    if (!S.accessToken) {
+      try {
+        const refreshRes = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin'
+        });
+        if (!refreshRes.ok) return null;
+        const data = await refreshRes.json();
+        S.accessToken = data.access_token;
+        if (data.csrf_token) S.csrfToken = data.csrf_token;
+        return data.user;
+      } catch (e) {
+        return null;
+      }
+    }
     return await request('/api/me');
   },
 
