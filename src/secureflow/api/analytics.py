@@ -1,10 +1,10 @@
-"""[VULNERABLE VERSION - v0-insecure]
+"""SecureFlow Analytics API Router.
 
-VUL-05: SQL query built via string concatenation in analytics filter.
+Fixes VUL-05: Removes raw SQL string concatenation; enforces parameterized ORM queries
+and parameter whitelisting (SR-09 / THR-08 / THR-12).
 """
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from secureflow.core.rbac import AuthenticatedUser, require
@@ -22,11 +22,7 @@ async def get_analytics(
     user: AuthenticatedUser = Depends(require("analytics.view")),
     db: Session = Depends(get_db)
 ):
-    # VUL-05: Raw string concatenation in SQL execution
-    if junction and junction != "all":
-        raw_sql = f"SELECT * FROM telemetry_records WHERE jid = '{junction}'"
-        db.execute(text(raw_sql))
-
+    """Retrieve aggregate historical traffic analytics."""
     try:
         data = get_traffic_analytics(db=db, junction_id=junction, time_range=range)
         return AnalyticsResponse.model_validate(data)
@@ -41,6 +37,7 @@ async def export_csv(
     user: AuthenticatedUser = Depends(require("analytics.view")),
     db: Session = Depends(get_db)
 ):
+    """Export historical traffic analysis as sanitized CSV."""
     try:
         data = get_traffic_analytics(db=db, junction_id=junction, time_range=range)
         csv_content = generate_neutralized_csv(
@@ -53,7 +50,9 @@ async def export_csv(
         return Response(
             content=csv_content,
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=traffic-analysis.csv"}
+            headers={
+                "Content-Disposition": "attachment; filename=traffic-analysis.csv"
+            }
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e

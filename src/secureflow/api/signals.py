@@ -1,12 +1,16 @@
-"""[VULNERABLE VERSION - v0-insecure]
+"""SecureFlow Signal Change Requests & Approval API Router.
 
-VUL-03: Signal change endpoint missing RBAC check (unauthorized users can propose/approve).
+Enforces two-person rule (SR-04):
+- Proposer cannot approve own change
+- Central RBAC check via require('signal.propose') and require('signal.approve')
+- Fixes VUL-03: Restores server-side RBAC dependency on all signal endpoints.
 """
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from secureflow.core.rbac import AuthenticatedUser, require
 from secureflow.models import SignalRequest
 from secureflow.repositories.database import get_db
 from secureflow.schemas import (
@@ -21,8 +25,11 @@ signals_router = APIRouter(prefix="/api/signal-requests", tags=["signals"])
 
 
 @signals_router.get("", response_model=List[SignalRequestResponse])
-async def list_signal_requests(db: Session = Depends(get_db)):
-    # VUL-03: Missing RBAC permission dependency
+async def list_signal_requests(
+    user: AuthenticatedUser = Depends(require("signal.view")),
+    db: Session = Depends(get_db)
+):
+    """List all traffic signal change requests."""
     requests = db.execute(select(SignalRequest).order_by(SignalRequest.ts.desc())).scalars().all()
     results = []
     for r in requests:
@@ -44,16 +51,17 @@ async def list_signal_requests(db: Session = Depends(get_db)):
 @signals_router.post("", response_model=SignalRequestResponse)
 async def propose_change(
     payload: ProposeSignalRequest,
+    user: AuthenticatedUser = Depends(require("signal.propose")),
     db: Session = Depends(get_db)
 ):
-    # VUL-03: Missing RBAC permission dependency
+    """Propose a new signal timing plan (operator or supervisor)."""
     try:
         req = propose_signal_change(
             db=db,
             jid=payload.jid,
             plan=payload.plan.model_dump(),
             reason=payload.reason,
-            proposer_id="anonymous"
+            proposer_id=user.id
         )
         return SignalRequestResponse(
             id=req.id,
@@ -75,16 +83,17 @@ async def propose_change(
 async def decide_request(
     request_id: str,
     payload: DecideSignalRequest,
+    user: AuthenticatedUser = Depends(require("signal.approve")),
     db: Session = Depends(get_db)
 ):
-    # VUL-03: Missing RBAC permission dependency
+    """Approve or reject a signal change request (supervisor only, two-person rule)."""
     try:
         req = decide_signal_change(
             db=db,
             request_id=request_id,
             decision=payload.decision,
             note=payload.note or "",
-            approver_id="anonymous"
+            approver_id=user.id
         )
         return SignalRequestResponse(
             id=req.id,
